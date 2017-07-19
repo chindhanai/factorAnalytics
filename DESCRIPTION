@@ -37,8 +37,9 @@ Imports:
     RCurl,
     bestglm,
     tseries,
-	HH,
-	reshape2
+	  HH,
+	  reshape2,
+	  matlib
 Suggests:
     testthat
 LazyLoad: yes
