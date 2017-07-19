@@ -695,7 +695,7 @@ fitFfmMod <- function(data, asset.var, ret.var, date.var, exposure.vars,
   }
   # create list of return values.
   result <- list(factor.fit = reg.list, beta = beta, factor.returns = factor.returns,
-                 residuals = residuals,
+                 residuals = residuals, Beta = Beta,
                  r2 = r2, factor.cov = factor.cov, g.cov = g.cov, resid.cov = resid.cov,
                  return.cov = return.cov, restriction.mat = restriction.mat,
                  resid.var = resid.var, call = this.call,
