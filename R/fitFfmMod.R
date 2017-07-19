@@ -1,11 +1,170 @@
+#' @title Fit a fundamental factor model using cross-sectional regression
+#'
+#' @description Fit a fundamental (cross-sectional) factor model using ordinary
+#' least squares or robust regression. Fundamental factor models use observable
+#' asset specific characteristics (or) fundamentals, like industry
+#' classification, market capitalization, style classification (value, growth)
+#' etc. to calculate the common risk factors. An object of class \code{"ffm"}
+#' is returned.
+#'
+#' @details
+#' Estimation method "LS" corresponds to ordinary least squares using 
+#' \code{\link[stats]{lm}} and "Rob" is robust regression using 
+#' \code{\link[robust]{lmRob}}. "WLS" is weighted least squares using estimates 
+#' of the residual variances from LS regression as weights (feasible GLS). 
+#' Similarly, "W-Rob" is weighted robust regression.
+#' 
+#' Standardizing style factor exposures: The exposures can be standardized into
+#' z-scores using regular or robust (see \code{rob.stats}) measures of location 
+#' and scale. Further, \code{weight.var}, a variable such as market-cap, can be 
+#' used to compute the weighted mean exposure, and an equal-weighted standard 
+#' deviation of the exposures about the weighted mean. This may help avoid an 
+#' ill-conditioned covariance matrix. Default option equally weights exposures 
+#' of different assets each period. 
+#' 
+#' If \code{rob.stats=TRUE}, \code{\link[robust]{covRob}} is used to compute a 
+#' robust estimate of the factor covariance/correlation matrix, and, 
+#' \code{\link[robustbase]{scaleTau2}} is used to compute robust tau-estimates 
+#' of univariate scale for residuals during "WLS" or "W-Rob" regressions. When 
+#' standardizing style exposures, the \code{\link[stats]{median}} and 
+#' \code{\link[stats]{mad}} are used for location and scale respectively.
+#' 
+#' 
+#' The original function was designed by Doug Martin and initially implemented
+#' in S-PLUS by a number of University of Washington Ph.D. students:
+#' Christopher Green, Eric Aldrich, and Yindeng Jiang. Guy Yollin ported the
+#' function to R and Yi-An Chen modified that code. Sangeetha Srinivasan
+#' re-factored, tested, corrected and expanded the functionalities and S3 
+#' methods.
+#'
+#' @importFrom stats lm as.formula coef contr.treatment fitted mad median model.matrix
+#'             na.exclude na.fail na.omit var 
+#' @importFrom robustbase scaleTau2 covOGK
+#' @importFrom PerformanceAnalytics checkData
+#' @importFrom robust covRob covClassic lmRob
+#'
+#' @param data data.frame of the balanced panel data containing the variables 
+#' \code{asset.var}, \code{ret.var}, \code{exposure.vars}, \code{date.var} and 
+#' optionally, \code{weight.var}.
+#' @param asset.var character; name of the variable for asset names.
+#' @param ret.var character; name of the variable for asset returns.
+#' @param date.var character; name of the variable containing the dates 
+#' coercible to class \code{Date}.
+#' @param exposure.vars vector; names of the variables containing the 
+#' fundamental factor exposures.
+#' @param weight.var character; name of the variable containing the weights 
+#' used when standarizing style factor exposures. Default is \code{NULL}. See 
+#' Details.
+#' @param fit.method method for estimating factor returns; one of "LS", "WLS" 
+#' "Rob" or "W-Rob". See details. Default is "LS".
+#' @param rob.stats logical; If \code{TRUE}, robust estimates of covariance, 
+#' correlation, location and univariate scale are computed as appropriate (see 
+#' Details). Default is \code{FALSE}.
+#' @param full.resid.cov logical; If \code{TRUE}, a full residual covariance 
+#' matrix is estimated. Otherwise, a diagonal residual covariance matrix is 
+#' estimated. Default is \code{FALSE}.
+#' @param z.score method for standardizing the factor exposures; one of "csScore",
+#' "tsScore" or "None". See details. Default is "csScore".
+#' @param tsScore method used in the factor exposure standardization; one of "EWMA", "robEWMA',
+#' or "GARCH". See details. Default is "EWMA".
+#' @param addIntercept logical; If \code{TRUE}, intercept is added in the exposure matrix. Default is \code{FALSE},
+#' @param lagExposures logical; If \code{TRUE}, the style exposures in the exposure matrix are lagged by one time period. Default is \code{FALSE},
+#' @param resid.EWMA logical; If \code{TRUE}, the residual variances are computed using EWMA and these would be used as weights for "WLS" or "W-Rob". Default is \code{FALSE},
+#' @param lambda lambda value to be used for the EWMA estimation of residual variances. Default is 0.9
+#' @param ... potentially further arguments passed.
+#' 
+#' @return \code{fitFfm} returns an object of class \code{"ffm"} for which 
+#' \code{print}, \code{plot}, \code{predict} and \code{summary} methods exist. 
+#' 
+#' The generic accessor functions \code{coef}, \code{fitted} and 
+#' \code{residuals} extract various useful features of the fit object. 
+#' Additionally, \code{fmCov} computes the covariance matrix for asset returns 
+#' based on the fitted factor model.
+#' 
+#' An object of class \code{"ffm"} is a list containing the following 
+#' components:
+#' \item{factor.fit}{list of fitted objects that estimate factor returns in each 
+#' time period. Each fitted object is of class \code{lm} if 
+#' \code{fit.method="LS" or "WLS"}, or, class \code{lmRob} if 
+#' \code{fit.method="Rob" or "W-Rob"}.}
+#' \item{beta}{N x K matrix of factor exposures for the last time period.}
+#' \item{factor.returns}{xts object of K-factor returns (including intercept).}
+#' \item{residuals}{xts object of residuals for N-assets.}
+#' \item{r2}{length-T vector of R-squared values.}
+#' \item{factor.cov}{K x K covariance matrix of the factor returns.}
+#' \item{g.cov}{ covariance matrix of the g coefficients for a Sector plus market and Sector plus Country plus global market models .}
+#' \item{resid.cov}{N x N covariance matrix of residuals.}
+#' \item{return.cov}{N x N return covariance estimated by the factor model, 
+#' using the factor exposures from the last time period.}
+#' \item{restriction.mat}{The restriction matrix used in the computation of f=Rg.}
+#' \item{resid.var}{length-N vector of residual variances.}
+#' \item{call}{the matched function call.}
+#' \item{data}{data frame object as input.}
+#' \item{date.var}{date.var as input}
+#' \item{ret.var}{ret.var as input}
+#' \item{asset.var}{asset.var as input.}
+#' \item{exposure.vars}{exposure.vars as input.}
+#' \item{weight.var}{weight.var as input.}
+#' \item{fit.method}{fit.method as input.}
+#' \item{asset.names}{length-N vector of asset names.}
+#' \item{factor.names}{length-K vector of factor.names.}
+#' \item{time.periods}{length-T vector of dates.}
+#' Where N is the number of assets, K is the number of factors (including the 
+#' intercept or dummy variables) and T is the number of unique time periods.
+#'
+#' @author Sangeetha Srinivasan, Guy Yollin,  Yi-An Chen, Avinash Acharya,
+#' and Chindhanai Uthaisaad
+#'
+#' @references
+#' Menchero, J. (2010). The Characteristics of Factor Portfolios. Journal of
+#' Performance Measurement, 15(1), 52-62.
+#'
+#' Grinold, R. C., & Kahn, R. N. (2000). Active portfolio management (Second
+#' Ed.). New York: McGraw-Hill.
+#'
+#' 
+#' And, the following extractor functions: \code{\link[stats]{coef}}, 
+#' \code{\link[stats]{fitted}}, \code{\link[stats]{residuals}},
+#' \code{\link{fmCov}}, \code{\link{fmSdDecomp}}, \code{\link{fmVaRDecomp}} 
+#' and \code{\link{fmEsDecomp}}.
+#' 
+#' \code{\link{paFm}} for Performance Attribution.
+#'
+#' @examples
+#'
+#' 
+#' # Load fundamental and return data
+#'  data("factorDataSetDjia5Yrs")
+#' 
+#' # fit a fundamental factor model
+#' exposure.vars <- c("P2B", "MKTCAP")
+#' fit <- fitFfmMod(data=factorDataSetDjia5Yrs, asset.var="TICKER", ret.var="RETURN", 
+#'               date.var="DATE", exposure.vars=exposure.vars)
+#' names(fit)
+#' 
+#' # fit a Industry Factor Model with Intercept
+#' exposure.vars <- c("SECTOR","P2B")
+#' fit1 <- fitFfmMod(data=factorDataSetDjia5Yrs, asset.var="TICKER", ret.var="RETURN", 
+#'                date.var="DATE", exposure.vars=exposure.vars, addIntercept=TRUE)
+#'                
+#' # Fit a SECTOR+COUNTRY+Style model with Intercept
+#' # Create a COUNTRY column with just 3 countries
+#' 
+#'  factorDataSetDjia5Yrs$COUNTRY = rep(rep(c(rep("US", 1 ),rep("GERMANY", 1 )), 11), 60)
+#'  exposure.vars= c("SECTOR", "COUNTRY","P2B", "MKTCAP")
+#'  
+#'  fit.MICM <- fitFfmMod(data=factorDataSetDjia5Yrs, asset.var="TICKER", ret.var="RETURN", 
+#'                    date.var="DATE", exposure.vars=exposure.vars, addIntercept=TRUE)
+
+#' @export
+
 
 fitFfmMod <- function(data, asset.var, ret.var, date.var, exposure.vars,
                       weight.var = NULL, fit.method = c("LS","WLS","Rob","W-Rob"),
                       rob.stats = FALSE, full.resid.cov = FALSE, addIntercept = FALSE,
-                      z.score = c("tsScore", "csScore", "None"), lagExposures = FALSE,
-                      resid.EWMA = FALSE, lambda_reg = 0.9, lambda_tsScore = 0.95,
-                      a = 2.5, tsScoreType = c("EWMA", "robEWMA", "GARCH"), alpha = 0.1,
-                      beta = 0.81, ...) {
+                      z.score = c("csScore", "tsScore", "None"), lagExposures = FALSE,
+                      tsScoreType = c("EWMA", "robEWMA", "GARCH"), resid.EWMA = FALSE, 
+                      lambda = 0.9, a = 2.5, alphaGarch = 0.1, betaGarch = 0.81, ...) {
 
   # record the call as an element to be returned
   this.call <- match.call()
@@ -50,8 +209,8 @@ fitFfmMod <- function(data, asset.var, ret.var, date.var, exposure.vars,
   if (!(tsScoreType %in% c("EWMA", "robEWMA", "GARCH"))) {
     stop("Invalid args: control parameter 'tsScoreType' must be either EWMA, robEWMA, GARCH, or NULL")
   }
-  if ((lambda_tsScore < 0) || (lambda_tsScore > 1)) {
-    return("Invalid arg: lambda_tsScore must be between 0 and 1")
+  if ((lambda < 0) || (lambda > 1)) {
+    return("Invalid arg: lambda must be between 0 and 1")
   }
 
   # initialize to avoid R CMD check's NOTE: no visible binding for global vars
@@ -131,8 +290,8 @@ fitFfmMod <- function(data, asset.var, ret.var, date.var, exposure.vars,
   for (i in exposures.num) {
     stdNumExpo <- by(data = data, INDICES = data[[date.var]], FUN = zScore,
                      i = i, rob.stats = rob.stats, z.score = z.score, a = a,
-                     tsScoreType = tsScoreType, lambda = lambda_tsScore, alpha = alpha,
-                     beta = beta)
+                     tsScoreType = tsScoreType, lambda = lambda, alphaGarch = alphaGarch,
+                     betaGarch = betaGarch)
     data[[i]] <- unlist(stdNumExpo)
   }
 
@@ -239,11 +398,11 @@ fitFfmMod <- function(data, asset.var, ret.var, date.var, exposure.vars,
       }
       if (resid.EWMA) {
         res = sapply(reg.list, residuals)
-        w <- matrix(0,N,N_TP)
+        w <- matrix(0, N, N_TP)
         for (i in 1:N) {
           var_tminus1 = as.numeric(resid.var[i])
           for (j in 2:N_TP) {
-            w[i,j] = var_tminus1 + ((1-lambda_reg)*(res[i,j]^2-var_tminus1))
+            w[i,j] = var_tminus1 + ((1-lambda)*(res[i,j]^2-var_tminus1))
             var_tminus1 = w[i,j]
           }
         }
@@ -539,7 +698,7 @@ fitFfmMod <- function(data, asset.var, ret.var, date.var, exposure.vars,
                  residuals = residuals,
                  r2 = r2, factor.cov = factor.cov, g.cov = g.cov, resid.cov = resid.cov,
                  return.cov = return.cov, restriction.mat = restriction.mat,
-                 resid.var = resid.var, call = this.call, Beta = Beta,
+                 resid.var = resid.var, call = this.call,
                  data = data, date.var = date.var, ret.var = ret.var,
                  asset.var = asset.var, exposure.vars = exposure.vars,
                  weight.var = weight.var, fit.method = fit.method,
@@ -554,8 +713,8 @@ fitFfmMod <- function(data, asset.var, ret.var, date.var, exposure.vars,
 # location and scale parameters
 
 zScore = function(data, i, z.score, rob.stats = TRUE,
-                  lambda = NULL, tsScoreType = NULL, a = 2.5, alpha = 0.1,
-                  beta = 0.81) {
+                  lambda = 0.9, tsScoreType = NULL, a = 2.5, alphaGarch = 0.1,
+                  betaGarch = 0.81) {
 
   if (z.score == "tsScore"){
 
@@ -578,7 +737,7 @@ zScore = function(data, i, z.score, rob.stats = TRUE,
         scores <- (data[[i]] - mean(data[[i]])) / sqrt(var_present)
 
     } else {
-        var_present <- sapply(TS, function(x) var_past <<- 2e-06 + alpha * x + beta * var_past)
+        var_present <- sapply(TS, function(x) var_past <<- 2e-06 + alphaGarch * x + betaGarch * var_past)
         scores <- (data[[i]] - mean(data[[i]])) / sqrt(var_present)
     }
   } else if (z.score == "csScore") {
@@ -591,4 +750,37 @@ zScore = function(data, i, z.score, rob.stats = TRUE,
 
   } else {}
   return(scores)
+}
+
+
+#' @param object a fit object of class \code{ffm} which is returned by 
+#' \code{fitFfm}
+
+#' @rdname fitFfm
+#' @method coef ffm
+#' @export
+
+coef.ffm <- function(object, ...) {
+  # these are the factor exposures computed through fitFfm
+  return(object$beta)
+}
+
+#' @rdname fitFfm
+#' @method fitted ffm
+#' @export
+
+fitted.ffm <- function(object, ...) {  
+  # get fitted values for all assets in each time period
+  # transpose and convert into xts/zoo objects
+  fitted.xts <- checkData(t(sapply(object$factor.fit, fitted)))
+  names(fitted.xts) <- object$asset.names
+  return(fitted.xts)
+}
+
+#' @rdname fitFfm
+#' @method residuals ffm
+#' @export
+
+residuals.ffm <- function(object, ...) {
+  return(object$residuals)
 }
