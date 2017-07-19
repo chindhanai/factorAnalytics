@@ -1,44 +1,77 @@
-install.packages('matlib')
 library(matlib)
+fundLawFfm = function(data, asset.var, ret.var, date.var, exposure.vars,
+                      benchmarkData, fit.method = c("LS", "Rob"), 
+                      tsScoreType = "EWMA", alpha = 0.1, beta = 0.81,...) {
 
-fundLawFfm = function(ffmObj, ...) {
+  fit.method = fit.method[1]
+  # Preprocessing to obtain the residual returns
+  data[[date.var]] <- as.Date(data[[date.var]])
+  time.periods <- unique(data[[date.var]])     # Extract unique time periods from data
+  N_TP <- length(time.periods)
+  if (N_TP < 2) {
+    stop("Invalid args: at least 2 unique time periods are required to fit the
+         factor model")
+  }
+  
+  # Order data.frame by date.var
+  data <- data[order(data[, date.var]), ]
+  
+  # Extract asset names from data
+  asset.names <- unique(data[[asset.var]])
+  N <- length(asset.names)
+  
+  # Define Return matrix
+  totReturns = matrix(data[[ret.var]], nrow = N)
+  row.names(totReturns) = asset.names
+  colnames(totReturns) = as.character(time.periods)
+  
+  # The benchmark return
+  benchReturns = benchmarkData
+  benchReturns = as.vector(benchReturns[as.yearmon(time.periods), ])
+  reg.list = vector("list", N)
+  residReturns = matrix(0, nrow = N, ncol = N_TP)
+  
+  # Fitting the single factor model for each asset
+  for (i in 1:N) {
+    if (grepl("LS", fit.method)) {
+      reg.list[[i]] <- lm(totReturns[i, ] ~ benchReturns)
+      residReturns[i, ] <- reg.list[[i]]$residuals
+    } else if (grepl("Rob", fit.method)) {
+      reg.list[[i]] <- lmRob(totReturns[i, ] ~ benchReturns, mxr=200, 
+                        mxf = 200, mxs = 200)
+      residReturns[i, ] <- reg.list[[i]]$residuals
+    }
+  }
+  row.names(residReturns) = asset.names
+  colnames(residReturns) = as.character(time.periods)
 
   # Standardize the residual returns
-  returns = t(ffmObj$residuals)
-  N = nrow(returns)
-  N_TP = ncol(returns)
   sigmaReturn = matrix(0, nrow = N, ncol = N_TP)
-  avg <- apply(returns, MARGIN = 1, FUN = mean)
-  var_past <- apply(returns, MARGIN = 1, FUN = var)
+  avg <- apply(residReturns, MARGIN = 1, FUN = mean)
+  var_past <- apply(residReturns, MARGIN = 1, FUN = var)
 
   for (i in 1:N) {
-    ts <- (returns[i, ] - avg[i]) ^ 2
+    ts <- (residReturns[i, ] - avg[i]) ^ 2
     var_past_2 <- var_past[i]
     sigmaReturn[i, ] <- sapply(ts[2], function(x) var_past_2 <<- 2e-06 + alpha * x + beta * var_past_2)
   }
-
+  
   sigmaReturn = sqrt(sigmaReturn)
-  returns <- (returns - avg) / sigmaReturn
+  residReturns <- residReturns / sigmaReturn
 
-  # Standardized exposures
-  Z = ffmObj$Beta
-  fmFormula = ffmObj$fm.formula
-
-  # Fit the ffm for the residual returns (TBD)
-  # Result: residFfmObj
-  data = ffmObj$data
-  data[["RETURN"]] = as.vector(returns)
-  residFfmObj = fitFfmMod(data = data, addIntercept = ffmObj$addIntercept,
-                          asset.var = ffmObj$asset.var, ret.var = ffmObj$ret.var,
-                          date.var = ffmObj$date.var, exposure.vars = ffmObj$exposure.vars,
-                          z.score = ffmObj$z.score, tsScoreType = ffmObj$tsScoreType,
-                          rob.stats = ffmObj$rob.stats, stdReturn = ffmObj$stdReturn)
+  # Fit Ffm to the residual returns
+  data[[ret.var]] = as.vector(residReturns)
+  fitResid = fitFfmMod(data = data, addIntercept = T,
+                       asset.var = asset.var, ret.var = ret.var, date.var = date.var,
+                       exposure.vars = exposure.vars,
+                       z.score = "tsScore", tsScoreType = tsScoreType)
+  residFactorReturns = fitResid$factor.returns
+  Z = fitResid$Beta
 
   # Compute IR
-  tsIC = residFfmObj$factor.returns
-  IC = apply(coredata(tsIC), MARGIN = 2, mean)
+  IC = apply(coredata(residFactorReturns), MARGIN = 2, mean)
   K = length(IC)
-  covIC = residFfmObj$factor.cov
+  covIC = fitResid$factor.cov
   varResid = 1 - sum(diag(covIC) + IC ^ 2)
   IR = as.numeric(sqrt(t(IC) %*% solve(diag(varResid, nrow = K, ncol = K) / N + covIC) %*% IC))
   if (det(covIC) < 1e-6){
@@ -60,9 +93,9 @@ fundLawFfm = function(ffmObj, ...) {
     Omega[[t - 1]] = Lambda %*% (Z[[t - 1]] %*% covIC %*% t(Z[[t - 1]]) + diag(varResid, nrow = N, ncol = N)) %*% Lambda
     colnames(Omega[[t - 1]]) = rownames(Omega[[t - 1]]) = stockNames
   }
-  names(alpha) = names(Omega) = index(tsIC)[-1]
+  names(alpha) = names(Omega) = index(residFactorReturns)[-1]
 
   return(list(IC = IC, varResid = varResid, IR = IR, asympIR = asympIR,
-              residFfmObj = residFfmObj,
+              residFactorReturns = residFactorReturns,
               alpha = alpha, Omega = Omega))
 }
