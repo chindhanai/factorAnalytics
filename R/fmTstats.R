@@ -180,7 +180,7 @@ fmTstats.ffm<- function(ffmObj, isPlot = TRUE, isPrint = FALSE,whichPlot = "all"
         superpose.polygon=list(col=c("grey", "red","black"), border="transparent"),
         strip.border=list(col="black") 
       )
-      plt = barchart(~value|variable,group = (id),data=dat,par.settings = my.settings,layout = layout,
+      plt = barchart(~value|variable, group = (id),data=dat,par.settings = my.settings,layout = layout,
                      main="Significant t-stats", ylab="Type", xlab="Total significance %",
                      auto.key=list(space="right",points=FALSE, rectangles=TRUE,
                                    title="Significant type", cex.title=1),
