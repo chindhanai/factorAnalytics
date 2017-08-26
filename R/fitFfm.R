@@ -35,7 +35,9 @@
 #' Christopher Green, Eric Aldrich, and Yindeng Jiang. Guy Yollin ported the
 #' function to R and Yi-An Chen modified that code. Sangeetha Srinivasan
 #' re-factored, tested, corrected and expanded the functionalities and S3 
-#' methods.
+#' methods. Chindhanai Uthaisaad expanded the functionalities for the fundamental 
+#' law of active management
+#' 
 #'
 #' @importFrom stats lm as.formula coef contr.treatment fitted mad median model.matrix
 #'             na.exclude na.fail na.omit var 
@@ -63,12 +65,19 @@
 #' @param full.resid.cov logical; If \code{TRUE}, a full residual covariance 
 #' matrix is estimated. Otherwise, a diagonal residual covariance matrix is 
 #' estimated. Default is \code{FALSE}.
-#' @param z.score logical; If \code{TRUE}, style exposures will be converted to 
-#' z-scores; weights given by \code{weight.var}. Default is \code{FALSE}.
-#' @param addIntercept logical; If \code{TRUE}, intercept is added in the exposure matrix. Deafault is \code{FALSE},
-#' @param lagExposures logical; If \code{TRUE}, the style exposures in the exposure matrix are lagged by one time period. Deafault is \code{FALSE},
+#' @param z.score method for exposure standardization; one of "none", "crossSection", or "timeSeries".
+#' Default is \code{"none"}.
+#' @param addIntercept logical; If \code{TRUE}, intercept is added in the exposure matrix. Default is \code{FALSE},
+#' @param lagExposures logical; If \code{TRUE}, the style exposures in the exposure matrix are lagged by one time period. Default is \code{FALSE},
 #' @param resid.EWMA logical; If \code{TRUE}, the residual variances are computed using EWMA and these would be used as weights for "WLS" or "W-Rob". Deafault is \code{FALSE},
 #' @param lambda lambda value to be used for the EWMA estimation of residual variances. Default is 0.9
+#' @param analysis method used in the analysis of fundamental law of active management; one of "none", "ISM", 
+#' or "NEW". Default is "none".
+#' @param stdReturn logical; If \code{TRUE}, the returns will be standardized using GARCH(1,1) volatilities. Default is \code{FALSE}
+#' @param fullPeriod logical; If \code{TRUE}, the fundamental law of active management will apply to all but the last 
+#' time period. Default is \code{FALSE}
+#' @param windowLength integer; the number of months used as a window length in the FLAM analysis. Default is 60 (5 years).
+#' @param targetedVol numeric; the targeted portfolio volatility in the analysis. Default is 0.06 (6%)
 #' @param ... potentially further arguments passed.
 #' 
 #' @return \code{fitFfm} returns an object of class \code{"ffm"} for which 
@@ -107,6 +116,9 @@
 #' \item{asset.names}{length-N vector of asset names.}
 #' \item{factor.names}{length-K vector of factor.names.}
 #' \item{time.periods}{length-T vector of dates.}
+#' \item{}
+#' \item{}
+#' \item{}
 #' Where N is the number of assets, K is the number of factors (including the 
 #' intercept or dummy variables) and T is the number of unique time periods.
 #'
