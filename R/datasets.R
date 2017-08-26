@@ -120,3 +120,13 @@ NULL
 #' @usage data("cusumData")
 #'
 NULL
+
+#' @name RussellData
+#' @title Russell data
+#'
+#' @description 16 Russell data
+#' @docType data
+#' @source TBA
+#' @usage data("RussellData")
+#'
+NULL

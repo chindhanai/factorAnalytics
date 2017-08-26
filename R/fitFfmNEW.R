@@ -67,9 +67,9 @@
 #' estimated. Default is \code{FALSE}.
 #' @param z.score method for exposure standardization; one of "none", "crossSection", or "timeSeries".
 #' Default is \code{"none"}.
-#' @param addIntercept logical; If \code{TRUE}, intercept is added in the exposure matrix. Default is \code{FALSE},
-#' @param lagExposures logical; If \code{TRUE}, the style exposures in the exposure matrix are lagged by one time period. Default is \code{FALSE},
-#' @param resid.EWMA logical; If \code{TRUE}, the residual variances are computed using EWMA and these would be used as weights for "WLS" or "W-Rob". Deafault is \code{FALSE},
+#' @param addIntercept logical; If \code{TRUE}, intercept is added in the exposure matrix. Default is \code{FALSE}.
+#' @param lagExposures logical; If \code{TRUE}, the style exposures in the exposure matrix are lagged by one time period. Default is \code{FALSE}.
+#' @param resid.EWMA logical; If \code{TRUE}, the residual variances are computed using EWMA and these would be used as weights for "WLS" or "W-Rob". Deafault is \code{FALSE}.
 #' @param lambda lambda value to be used for the EWMA estimation of residual variances. Default is 0.9
 #' @param analysis method used in the analysis of fundamental law of active management; one of "none", "ISM", 
 #' or "NEW". Default is "none".
@@ -77,16 +77,19 @@
 #' @param fullPeriod logical; If \code{TRUE}, the fundamental law of active management will apply to all but the last 
 #' time period. Default is \code{FALSE}
 #' @param windowLength integer; the number of months used as a window length in the FLAM analysis. Default is 60 (5 years).
-#' @param targetedVol numeric; the targeted portfolio volatility in the analysis. Default is 0.06 (6%)
+#' @param targetedVol numeric; the targeted portfolio volatility in the analysis. Default is 0.06.
 #' @param ... potentially further arguments passed.
+#' 
 #' 
 #' @return \code{fitFfm} returns an object of class \code{"ffm"} for which 
 #' \code{print}, \code{plot}, \code{predict} and \code{summary} methods exist. 
+#' 
 #' 
 #' The generic accessor functions \code{coef}, \code{fitted} and 
 #' \code{residuals} extract various useful features of the fit object. 
 #' Additionally, \code{fmCov} computes the covariance matrix for asset returns 
 #' based on the fitted factor model.
+#' 
 #' 
 #' An object of class \code{"ffm"} is a list containing the following 
 #' components:
@@ -99,7 +102,7 @@
 #' \item{residuals}{xts object of residuals for N-assets.}
 #' \item{r2}{length-T vector of R-squared values.}
 #' \item{factor.cov}{K x K covariance matrix of the factor returns.}
-#' \item{g.cov}{ covariance matrix of the g coefficients for a Sector plus market and Sector plus Country plus global market models .}
+#' \item{g.cov}{ covariance matrix of the g coefficients for a Sector plus market and Sector plus Country plus global market models.}
 #' \item{resid.cov}{N x N covariance matrix of residuals.}
 #' \item{return.cov}{N x N return covariance estimated by the factor model, 
 #' using the factor exposures from the last time period.}
@@ -119,7 +122,6 @@
 #' \item{condAlpha}{length-windowLength the conditional mean of the portfolio returns in each moving window.}
 #' \item{condOmega}{length-windowLength list of the conditional covariance matrices of the portfolio returns in each moving window.}
 #' \item{IR}{the vector of in-sample IR, out-f-sample IR, and the standard error of the out-of-sample IR.}
-#' 
 #' Where N is the number of assets, K is the number of factors (including the 
 #' intercept or dummy variables) and T is the number of unique time periods.
 #'

@@ -1,10 +1,10 @@
-Package: factorAnalytics
+Package: factorAnalyticsAddons
 Type: Package
 Title: Factor Analytics
 Version: 2.0.33
 Date: 2017-05-16
-Author: Eric Zivot, Doug Martin, Sangeetha Srinivasan, Yi-An Chen, Lingjie Yi and Avinash Acharya
-Maintainer: Sangeetha Srinivasan <sangee@uw.edu>
+Author: Eric Zivot, Doug Martin, Sangeetha Srinivasan, Yi-An Chen, Lingjie Yi, Avinash Acharya and Chindhanai Uthaisaad
+Maintainer: Chindhanai Uthaisaad <chindu@uw.edu>
 Description: Linear factor model fitting for asset returns (three major types-
     time series, fundamental and statistical factor models); related risk
     (volatility, VaR and ES) and performance attribution (factor-contributed vs
@@ -15,7 +15,7 @@ License: GPL-2
 Depends:
     R (>= 3.0.0),
     foreach (>= 1.4),
-	  xts (>= 0.9),
+	xts (>= 0.9),
     rrcov (>= 1.3)
 Imports:
     PerformanceAnalytics(>= 1.4),
@@ -37,8 +37,11 @@ Imports:
     RCurl,
     bestglm,
     tseries,
-	  HH,
-	  reshape2
+	HH,
+	reshape2,
+	rugarch
+Remotes:
+	bitbucket::alexiosg/rugarch
 Suggests:
     testthat
 LazyLoad: yes

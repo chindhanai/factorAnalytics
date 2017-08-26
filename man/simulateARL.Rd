@@ -42,10 +42,10 @@ Lower_Threshold = 1.00
 Upper_Threshold = 11.0
 #Monthly mu's for monthly sigma=1, annualized IR = +0.5, 0
 mu = c(0.5, 0) / sqrt(12)
-Seq_M = 20:70
+Seq_M = 30:40
 Thresholds = Lower_Threshold + Seq_M * (Upper_Threshold - Lower_Threshold) / 100
-Threshold_upper = sapply(Thresholds, FUN = simulateARL, mu = mu[1], delta = 0.01)
-Threshold_lower = sapply(Thresholds, FUN = simulateARL, mu = mu[2], delta = 0.01)
+Threshold_upper = sapply(Thresholds, FUN = simulateARL, mu = mu[1], delta = 0.05)
+Threshold_lower = sapply(Thresholds, FUN = simulateARL, mu = mu[2], delta = 0.05)
 
 }
 \references{
