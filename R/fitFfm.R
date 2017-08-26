@@ -42,7 +42,7 @@
 #' @importFrom stats lm as.formula coef contr.treatment fitted mad median model.matrix
 #'             na.exclude na.fail na.omit var 
 #' @importFrom robustbase scaleTau2 covOGK
-#' @importFrom PerformanceAnalytics checkData
+#' @importFrom PerformanceAnalytics checkData kurtosis skewness
 #' @importFrom robust covRob covClassic lmRob
 #'
 #' @param data data.frame of the balanced panel data containing the variables 
@@ -116,9 +116,10 @@
 #' \item{asset.names}{length-N vector of asset names.}
 #' \item{factor.names}{length-K vector of factor.names.}
 #' \item{time.periods}{length-T vector of dates.}
-#' \item{condAlpha}{length-windowLength the conditional mean of the portfolio returns in each moving window}
-#' \item{condOmega}{length-windowLength list of the conditional covariance matrices of the portfolio returns in each moving window}
-#' \item{IR}{the vector of in-sample IR, out-f-sample IR, and the standard error of the out-of-sample IR}
+#' \item{condAlpha}{length-windowLength the conditional mean of the portfolio returns in each moving window.}
+#' \item{condOmega}{length-windowLength list of the conditional covariance matrices of the portfolio returns in each moving window.}
+#' \item{IR}{the vector of in-sample IR, out-f-sample IR, and the standard error of the out-of-sample IR.}
+#' 
 #' Where N is the number of assets, K is the number of factors (including the 
 #' intercept or dummy variables) and T is the number of unique time periods.
 #'
@@ -208,7 +209,7 @@ fitFfm <- function(data, asset.var, ret.var, date.var, exposure.vars,
                    rob.stats = FALSE, full.resid.cov=FALSE, z.score = c("none", "crossSection", "timeSeries"), 
                    addIntercept = FALSE, lagExposures = FALSE, resid.EWMA = FALSE, 
                    lambda = 0.9, stdReturn = FALSE, fullPeriod = FALSE, windowLength = 60,
-                   analysis = c("none", "ISM", "NEW"), targetedVol = 0.06,...) {
+                   analysis = c("none", "ISM", "NEW"), targetedVol = 0.06, ...) {
   
   # record the call as an element to be returned
   this.call <- match.call()
