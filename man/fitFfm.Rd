@@ -51,16 +51,28 @@ Details). Default is \code{FALSE}.}
 matrix is estimated. Otherwise, a diagonal residual covariance matrix is 
 estimated. Default is \code{FALSE}.}
 
-\item{z.score}{logical; If \code{TRUE}, style exposures will be converted to 
-z-scores; weights given by \code{weight.var}. Default is \code{FALSE}.}
+\item{z.score}{method for exposure standardization; one of "none", "crossSection", or "timeSeries".
+Default is \code{"none"}.}
 
-\item{addIntercept}{logical; If \code{TRUE}, intercept is added in the exposure matrix. Deafault is \code{FALSE},}
+\item{addIntercept}{logical; If \code{TRUE}, intercept is added in the exposure matrix. Default is \code{FALSE},}
 
-\item{lagExposures}{logical; If \code{TRUE}, the style exposures in the exposure matrix are lagged by one time period. Deafault is \code{FALSE},}
+\item{lagExposures}{logical; If \code{TRUE}, the style exposures in the exposure matrix are lagged by one time period. Default is \code{FALSE},}
 
 \item{resid.EWMA}{logical; If \code{TRUE}, the residual variances are computed using EWMA and these would be used as weights for "WLS" or "W-Rob". Deafault is \code{FALSE},}
 
 \item{lambda}{lambda value to be used for the EWMA estimation of residual variances. Default is 0.9}
+
+\item{stdReturn}{logical; If \code{TRUE}, the returns will be standardized using GARCH(1,1) volatilities. Default is \code{FALSE}}
+
+\item{fullPeriod}{logical; If \code{TRUE}, the fundamental law of active management will apply to all but the last 
+time period. Default is \code{FALSE}}
+
+\item{windowLength}{integer; the number of months used as a window length in the FLAM analysis. Default is 60 (5 years).}
+
+\item{analysis}{method used in the analysis of fundamental law of active management; one of "none", "ISM", 
+or "NEW". Default is "none".}
+
+\item{targetedVol}{numeric; the targeted portfolio volatility in the analysis. Default is 0.06 (6%)}
 
 \item{...}{potentially further arguments passed.}
 
@@ -104,6 +116,10 @@ using the factor exposures from the last time period.}
 \item{asset.names}{length-N vector of asset names.}
 \item{factor.names}{length-K vector of factor.names.}
 \item{time.periods}{length-T vector of dates.}
+\item{condAlpha}{length-windowLength the conditional mean of the portfolio returns in each moving window.}
+\item{condOmega}{length-windowLength list of the conditional covariance matrices of the portfolio returns in each moving window.}
+\item{IR}{the vector of in-sample IR, out-f-sample IR, and the standard error of the out-of-sample IR.}
+
 Where N is the number of assets, K is the number of factors (including the 
 intercept or dummy variables) and T is the number of unique time periods.
 }
@@ -143,7 +159,8 @@ in S-PLUS by a number of University of Washington Ph.D. students:
 Christopher Green, Eric Aldrich, and Yindeng Jiang. Guy Yollin ported the
 function to R and Yi-An Chen modified that code. Sangeetha Srinivasan
 re-factored, tested, corrected and expanded the functionalities and S3 
-methods.
+methods. Chindhanai Uthaisaad expanded the functionalities for the fundamental 
+law of active management
 }
 \examples{
 
@@ -173,16 +190,15 @@ fit1 <- fitFfm(data=factorDataSetDjia5Yrs, asset.var="TICKER", ret.var="RETURN",
                    
 data("mktSP")
 data("factorDataSetDjia")
-data = factorDataSetDjia
-data <- data[order(data[, "DATE"]), ]
+factorDataSetDjia <- factorDataSetDjia[order(factorDataSetDjia[, "DATE"]), ]
 # Extract asset names from data
-asset.names <- unique(data[["TICKER"]])
+asset.names <- unique(factorDataSetDjia[["TICKER"]])
 N_stocks <- length(asset.names)
-time.periods <- unique(data[["DATE"]])
+time.periods <- unique(factorDataSetDjia[["DATE"]])
 N_TP <- length(time.periods)
 bmkReturn <- mktSP[index(mktSP) \%in\% time.periods, ]
 
-totReturns = matrix(data[["RETURN"]], nrow = N_stocks)[1:N_stocks, ]
+totReturns = matrix(factorDataSetDjia[["RETURN"]], nrow = N_stocks)[1:N_stocks, ]
 rownames(totReturns) = asset.names
 
 # Compute residual returns from CAPM----
@@ -193,13 +209,13 @@ for (i in 1:N_stocks) {
   residReturns[i, ] <- totReturns[i, ] - beta_i[i] * bmkReturn
 }
 
-modData <- cbind(data, "RESIDRETURN" = as.vector(residReturns))
-sizeFfm <- fitFfm(data = modData, asset.var = "TICKER", ret.var = "RESIDRETURN",
+modData <- cbind(factorDataSetDjia, "RESIDRETURN" = as.vector(residReturns))
+sizeFfm <- fitFfm(modData, asset.var = "TICKER", ret.var = "RESIDRETURN",
                   exposure.vars = c("SIZE"), addIntercept = TRUE, stdReturn = FALSE,
                   z.score = "crossSection", date.var = "DATE", lagExposures = TRUE, 
                   analysis = "ISM")
                   
-p2bFfm <- fitFfm(data = modData, asset.var = "TICKER", ret.var = "RESIDRETURN",
+p2bFfm <- fitFfm(modData, asset.var = "TICKER", ret.var = "RESIDRETURN",
                  exposure.vars = c("P2B"), addIntercept = TRUE, stdReturn = TRUE,
                  z.score = "timeSeries", date.var = "DATE", lagExposures = TRUE, 
                  analysis = "NEW")

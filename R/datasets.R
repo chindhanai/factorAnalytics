@@ -108,3 +108,15 @@ NULL
 #' @source Yahoo
 #' @usage data("mktSP")
 NULL
+
+#' @name cusumData
+#' @title Parvest and S&P500
+#'
+#' @description Data in the example is an xts object containing two monthly returns in each column.
+#' The first column is the fund returns and the second column is the
+#' benchmark returns. The data is from Jan 2005 to Dec 2003.
+#' @docType data
+#' @source TBA
+#' @usage data("cusumData")
+#'
+NULL
