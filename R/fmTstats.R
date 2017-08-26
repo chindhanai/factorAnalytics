@@ -4,7 +4,7 @@
 #'  Calculate and plot the time series of the t-statistic values and the
 #'  number of risk indices with significant t-stats for a fundamentally fit object.
 #' @importFrom xts xts
-#' @importFrom zoo plot.zoo
+#' @importFrom zoo plot.zoo coredata
 #' @importFrom zoo as.yearmon
 #' @importFrom lattice panel.abline xyplot panel.xyplot barchart
 #' @importFrom grDevices dev.off
@@ -51,7 +51,8 @@
 #'  stats = fmTstats(fit, isPlot = TRUE, lwd = 2, color = c("blue", "blue"), z.alpha =1.96)
 #'
 #' fit1 <- fitFfm(data=factorDataSetDjia5Yrs, asset.var="TICKER", ret.var="RETURN", 
-#'                date.var="DATE", exposure.vars=c("SECTOR","MKTCAP","ENTVAL","P2B"), addIntercept=TRUE)
+#'                date.var="DATE", exposure.vars=c("SECTOR","MKTCAP","ENTVAL","P2B"), 
+#'                addIntercept=TRUE)
 #' #Compute time series of t-stats and number of significant t-stats 
 #'  stats = fmTstats(fit1, isPlot = TRUE, z.alpha =1.96) 
 #'                
@@ -117,26 +118,27 @@ fmTstats.ffm<- function(ffmObj, isPlot = TRUE, isPrint = FALSE,whichPlot = "all"
       std.errors = cbind(std.errors,stdErr.sty)
       std.errors = std.errors[, colnames(ffmObj$factor.returns)]
     }
-    #colnames(std.errors) = colnames(ffmObj$factor.returns)
-    tstatsTs = ffmObj$factor.returns/std.errors
+    #tstatsTs = ffmObj$factor.returns/std.errors
+    tstats = coredata(ffmObj$factor.returns/std.errors)
     
   }else
   { tstats = lapply(seq(time.periods), function(a) summary(ffmObj)$sum.list[[a]]$coefficients[,3])
   secNames = names(tstats[[1]])
   tstats = matrix(unlist(tstats), byrow = TRUE, nrow = time.periods)
   colnames(tstats)=secNames
-  tstatsTs = xts(tstats,order.by=as.yearmon(names(ffmObj$r2)))
+  #tstatsTs = xts(tstats,order.by=as.yearmon(names(ffmObj$r2)))
   }
   
-  
+  tstatsTs = xts(tstats,order.by=as.yearmon(names(ffmObj$r2)))
   # COUNT NUMBER OF RISK INDICES WITH SIGNIFICANT T-STATS EACH MONTH
-  sigTstats = as.matrix(rowSums(ifelse(abs(tstatsTs) > z.alpha,1,0)))
+  #(Modified code using xts obj in ifelse to bypass bug in xts package v0.10)
+  sigTstats = as.matrix(rowSums(ifelse(abs(tstats) > z.alpha,1,0)))
   sigTstatsTs = xts(sigTstats,order.by=as.yearmon(names(ffmObj$r2)))
   
-  pos.sigTstatsTs = as.matrix(colSums(ifelse((tstatsTs) > z.alpha,1,0)))
+  pos.sigTstatsTs = as.matrix(colSums(ifelse((tstats) > z.alpha,1,0)))
   #pos.sigTstatsTs = xts(pos.sigTstats,order.by=as.yearmon(names(ffmObj$r2)))
-  neg.sigTstatsTs = as.matrix(colSums(ifelse((tstatsTs) < -z.alpha,1,0)))
-  Toal.sigTstats = as.matrix(colSums(ifelse(abs(tstatsTs) > z.alpha,1,0)))
+  neg.sigTstatsTs = as.matrix(colSums(ifelse((tstats) < -z.alpha,1,0)))
+  Toal.sigTstats = as.matrix(colSums(ifelse(abs(tstats) > z.alpha,1,0)))
   
   combined.sigTstats = cbind(  neg.sigTstatsTs,pos.sigTstatsTs, Toal.sigTstats)
   colnames(combined.sigTstats) = c( "Negative", "Positive", "Total")
@@ -145,7 +147,7 @@ fmTstats.ffm<- function(ffmObj, isPlot = TRUE, isPrint = FALSE,whichPlot = "all"
   #percent.sigTstats = rbind(percent.sigTstats,"TOTAL" = colSums(percent.sigTstats))
   percent.sigTstats$var = rownames(combined.sigTstats)
   
-
+  
   
   if(isPlot)
   {
@@ -157,56 +159,56 @@ fmTstats.ffm<- function(ffmObj, isPlot = TRUE, isPrint = FALSE,whichPlot = "all"
     if(whichPlot == "significantTstatsLikert")
     {
       
-        plt = likert(var ~ ., percent.sigTstats,
-                     scales=list(y=list(cex=stripText.cex), x=list(cex=axis.cex)),
-                     positive.order=TRUE, 
-                     between=list(y=0),
-                     strip=FALSE, strip.left=FALSE,
-                     #par.strip.text=list(cex=stripText.cex, lines=3),
-                     main="significant t-stats",rightAxis=FALSE,
-                     ylab=NULL,  xlab='Total significance %')
-        print(plt)
+      plt = likert(var ~ ., percent.sigTstats,
+                   scales=list(y=list(cex=stripText.cex), x=list(cex=axis.cex)),
+                   positive.order=TRUE, 
+                   between=list(y=0),
+                   strip=FALSE, strip.left=FALSE,
+                   #par.strip.text=list(cex=stripText.cex, lines=3),
+                   main="significant t-stats",rightAxis=FALSE,
+                   ylab=NULL,  xlab='Total significance %')
+      print(plt)
     }
     if(whichPlot == "significantTstatsH")
     {
-        combined.sigTstatsH = combined.sigTstats[,c(3,1,2)]
-        mydata = as.data.frame(t(combined.sigTstatsH))
-        mydata$id <- c("Total", "Negative","Positive")
-        mydata$id  = factor(mydata$id , levels = c("Total", "Negative","Positive"))
-        dat <- melt(mydata,id.vars = "id")
-        my.settings <- list(
-          superpose.polygon=list(col=c("grey", "red","black"), border="transparent"),
-          strip.border=list(col="black") 
-        )
-        plt = barchart(~value|variable,group = (id),data=dat,par.settings = my.settings,layout = layout,
-                       main="Significant t-stats", ylab="Type", xlab="Total significance %",
-                       auto.key=list(space="right",points=FALSE, rectangles=TRUE,
-                                     title="Significant type", cex.title=1),
-                       scales=list(y=list(cex=axis.cex), x=list(cex=axis.cex)),par.strip.text=list(col="black", font=2, cex = stripText.cex))
-        print(plt)
+      combined.sigTstatsH = combined.sigTstats[,c(3,1,2)]
+      mydata = as.data.frame(t(combined.sigTstatsH))
+      mydata$id <- c("Total", "Negative","Positive")
+      mydata$id  = factor(mydata$id , levels = c("Total", "Negative","Positive"))
+      dat <- melt(mydata,id.vars = "id")
+      my.settings <- list(
+        superpose.polygon=list(col=c("grey", "red","black"), border="transparent"),
+        strip.border=list(col="black") 
+      )
+      plt = barchart(~value|variable,group = (id),data=dat,par.settings = my.settings,layout = layout,
+                     main="Significant t-stats", ylab="Type", xlab="Total significance %",
+                     auto.key=list(space="right",points=FALSE, rectangles=TRUE,
+                                   title="Significant type", cex.title=1),
+                     scales=list(y=list(cex=axis.cex), x=list(cex=axis.cex)),par.strip.text=list(col="black", font=2, cex = stripText.cex))
+      print(plt)
     }
     if(whichPlot == "all" | whichPlot == "significantTstatsV")
     {
-        combined.sigTstatsV = combined.sigTstats[,c(3,1,2)]
-        mydata = as.data.frame(t(combined.sigTstatsV))
-        mydata$id <- c("Total", "Negative","Positive")
-        mydata$id  = factor(mydata$id , levels = c("Positive", "Negative","Total"))
-        dat <- melt(mydata,id.vars = "id")
-        my.settings <- list(
-          superpose.polygon=list(col=c("black", "red","grey"), border="transparent"),
-          strip.border=list(col="black") 
-        )
-        
-        plt = barchart(value~(id)|variable,group = (id),data=dat,origin=0,stack =TRUE,
-                       main="Significant t-stats", xlab="Type", ylab="Total significance %",
-                       par.settings = my.settings,layout = layout,
-                       auto.key=list(space="right",points=FALSE, rectangles=TRUE,
-                                         title="Significant type", cex.title=1),
-                       scales=list(y=list(cex=axis.cex), x=list(cex=axis.cex)),par.strip.text=list(col="black", font=2, cex = stripText.cex))
-        print(plt)
+      combined.sigTstatsV = combined.sigTstats[,c(3,1,2)]
+      mydata = as.data.frame(t(combined.sigTstatsV))
+      mydata$id <- c("Total", "Negative","Positive")
+      mydata$id  = factor(mydata$id , levels = c("Positive", "Negative","Total"))
+      dat <- melt(mydata,id.vars = "id")
+      my.settings <- list(
+        superpose.polygon=list(col=c("black", "red","grey"), border="transparent"),
+        strip.border=list(col="black") 
+      )
+      
+      plt = barchart(value~(id)|variable,group = (id),data=dat,origin=0,stack =TRUE,
+                     main="Significant t-stats", xlab="Type", ylab="Total significance %",
+                     par.settings = my.settings,layout = layout,
+                     auto.key=list(space="right",points=FALSE, rectangles=TRUE,
+                                   title="Significant type", cex.title=1),
+                     scales=list(y=list(cex=axis.cex), x=list(cex=axis.cex)),par.strip.text=list(col="black", font=2, cex = stripText.cex))
+      print(plt)
     }
-
-
+    
+    
     if(whichPlot == "all" | whichPlot == "tStats")
     {
       #par(mfrow= c(3,1))
