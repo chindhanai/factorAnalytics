@@ -16,7 +16,7 @@ To get started, you can install the package from github using `devtools`.
 
 ``` r
 library(devtools)
-install_github("chindhanai/factorAnalytics")
+install_github("chindhanai/factorAnalyticsAddons")
 ```
 
 ------------
