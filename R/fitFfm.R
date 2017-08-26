@@ -110,7 +110,7 @@
 #' Where N is the number of assets, K is the number of factors (including the 
 #' intercept or dummy variables) and T is the number of unique time periods.
 #'
-#' @author Sangeetha Srinivasan, Guy Yollin,  Yi-An Chen and Avinash Acharya
+#' @author Sangeetha Srinivasan, Guy Yollin, Yi-An Chen, Avinash Acharya and Chindhanai Uthaisaad
 #'
 #' @references
 #' Menchero, J. (2010). The Characteristics of Factor Portfolios. Journal of
@@ -152,16 +152,52 @@
 #'  
 #'  fit.MICM <- fitFfm(data=factorDataSetDjia5Yrs, asset.var="TICKER", ret.var="RETURN", 
 #'                    date.var="DATE", exposure.vars=exposure.vars, addIntercept=TRUE)
-
+#'                    
+#' data("mktSP")
+#' data("factorDataSetDjia")
+#' data = factorDataSetDjia
+#' data <- data[order(data[, "DATE"]), ]
+#' # Extract asset names from data
+#' asset.names <- unique(data[["TICKER"]])
+#' N_stocks <- length(asset.names)
+#' time.periods <- unique(data[["DATE"]])
+#' N_TP <- length(time.periods)
+#' bmkReturn <- mktSP[index(mktSP) %in% time.periods, ]
+#' 
+#' totReturns = matrix(data[["RETURN"]], nrow = N_stocks)[1:N_stocks, ]
+#' rownames(totReturns) = asset.names
+#' 
+#' # Compute residual returns from CAPM----
+#' residReturns <- totReturns
+#' beta_i <- c()
+#' for (i in 1:N_stocks) {
+#'   beta_i[i] <- c(cov(totReturns[i, ] , bmkReturn) / var(bmkReturn))
+#'   residReturns[i, ] <- totReturns[i, ] - beta_i[i] * bmkReturn
+#' }
+#' 
+#' modData <- cbind(data, "RESIDRETURN" = as.vector(residReturns))
+#' sizeFfm <- fitFfm(data = modData, asset.var = "TICKER", ret.var = "RESIDRETURN",
+#'                   exposure.vars = c("SIZE"), addIntercept = TRUE, stdReturn = FALSE,
+#'                   z.score = "crossSection", date.var = "DATE", lagExposures = TRUE, 
+#'                   analysis = "ISM")
+#'                   
+#' p2bFfm <- fitFfm(data = modData, asset.var = "TICKER", ret.var = "RESIDRETURN",
+#'                  exposure.vars = c("P2B"), addIntercept = TRUE, stdReturn = TRUE,
+#'                  z.score = "timeSeries", date.var = "DATE", lagExposures = TRUE, 
+#'                  analysis = "NEW")
+#' 
+#' 
 #' @export
 
 
 
 
 fitFfm <- function(data, asset.var, ret.var, date.var, exposure.vars, 
-                       weight.var=NULL, fit.method=c("LS","WLS","Rob","W-Rob"), 
-                       rob.stats=FALSE, full.resid.cov=FALSE, z.score=FALSE,addIntercept = FALSE,
-                       lagExposures=FALSE, resid.EWMA = FALSE, lambda = 0.9, ...) {
+                   weight.var = NULL, fit.method=c("LS","WLS","Rob","W-Rob"), 
+                   rob.stats = FALSE, full.resid.cov=FALSE, z.score = c("none", "crossSection", "timeSeries"), 
+                   addIntercept = FALSE, lagExposures = FALSE, resid.EWMA = FALSE, 
+                   lambda = 0.9, stdReturn = FALSE, fullPeriod = FALSE, windowLength = 60,
+                   analysis = c("none", "ISM", "NEW"), targetedVol = 0.06,...) {
   
   # record the call as an element to be returned
   this.call <- match.call()
@@ -198,9 +234,15 @@ fitFfm <- function(data, asset.var, ret.var, date.var, exposure.vars,
   if (!is.logical(full.resid.cov) || length(full.resid.cov) != 1) {
     stop("Invalid args: control parameter 'full.resid.cov' must be logical")
   }
-  if (!is.logical(z.score) || length(z.score) != 1) {
-    stop("Invalid args: control parameter 'z.score' must be logical")
+  z.score = z.score[1]
+  if (!(z.score %in% c("none", "crossSection", "timeSeries")) || length(z.score) != 1) {
+    stop("Invalid args: control parameter 'z.score' must be either csScore or tsScore")
   }
+  analysis = analysis[1]
+  if (!(analysis %in% c("none", "ISM", "NEW")) || length(z.score) != 1) {
+    stop("Invalid args: control parameter 'analysis' must be either ISM or NEW")
+  }
+
   
   # initialize to avoid R CMD check's NOTE: no visible binding for global var
   DATE=NULL 
@@ -225,9 +267,23 @@ fitFfm <- function(data, asset.var, ret.var, date.var, exposure.vars,
   # extract asset names from data
   asset.names <- unique(data[[asset.var]])
   N <- length(asset.names)
+  rawReturns <- matrix(data[[ret.var]], nrow = N)
+  
+  # Standardize the returns if stdReturn = TRUE
+  if (stdReturn) {
+    sdReturns <- apply(rawReturns, 2, sd)
+    sigmaGarch <- rawReturns
+    for (i in 1:N) {
+      ts <- rawReturns[i, ] ^ 2
+      var_past_2 <- 0
+      sigmaGarch[i, ] <- sapply(ts, function(x) var_past_2 <<- (1 - 0.10 - 0.81) * sdReturns[i] ^ 2 + 0.10 * x + 0.81 * var_past_2)
+    }
+    sigmaGarch <- sqrt(sigmaGarch)
+    data[[ret.var]] <- as.vector(rawReturns / sigmaGarch)
+  }
   
   # check number & type of exposure; convert character exposures to dummy vars
-  which.numeric <- sapply(data[,exposure.vars,drop=FALSE], is.numeric)
+  which.numeric <- sapply(data[, exposure.vars, drop=FALSE], is.numeric)
   exposures.num <- exposure.vars[which.numeric]
   exposures.char <- exposure.vars[!which.numeric]
   if ((length(exposures.char) >1) && !addIntercept) {
@@ -241,6 +297,32 @@ fitFfm <- function(data, asset.var, ret.var, date.var, exposure.vars,
   {
     model.styleOnly = TRUE
   }
+  
+  # Convert numeric exposures to z-scores
+  if (!grepl(z.score, "none")) {
+    if (!is.null(weight.var)) {
+      # Weight exposures within each period using weight.var
+      w <- unlist(by(data=data, INDICES=data[[date.var]], 
+                     function(x) x[[weight.var]]/sum(x[[weight.var]])))
+    } else {
+      w <- rep(1, nrow(data))
+    }
+    # Calculate z-scores looping through all numeric exposures
+    if (grepl(z.score, "csScore")) {
+      for (i in exposures.num) {
+        std.expo.num <- by(data = data, INDICES = data[[date.var]], FUN = zScore,
+                           i = i, w = w, rob.stats = rob.stats, z.score = z.score, 
+                           asset.names = asset.names)
+        data[[i]] <- unlist(std.expo.num)
+      }
+    } else {
+      for (i in exposures.num) {
+        data[[i]] <- zScore(x = data, i = i, w = w, rob.stats = rob.stats, 
+                            z.score = z.score, asset.names = asset.names)
+      }
+    }
+  }
+  
   if(lagExposures)
   {
     data <- data[order(data[,date.var]),]
@@ -254,23 +336,6 @@ fitFfm <- function(data, asset.var, ret.var, date.var, exposure.vars,
     #Update the time period length
     time.periods <- unique(data[[date.var]])
     TP <- length(time.periods)
-  }
-  
-  # convert numeric exposures to z-scores
-  if (z.score) {
-    if (!is.null(weight.var)) {
-      # weight exposures within each period using weight.var
-      w <- unlist(by(data=data, INDICES=data[[date.var]], 
-                     function(x) x[[weight.var]]/sum(x[[weight.var]])))
-    } else {
-      w <- rep(1, nrow(data))
-    }
-    # calculate z-scores looping through all numeric exposures
-    for (i in exposures.num) {
-      std.expo.num <- by(data=data, INDICES=data[[date.var]], FUN=zScore,
-                         i=i, w=w, rob.stats=rob.stats)
-      data[[i]] <- unlist(std.expo.num)
-    }
   }
   
   if(!model.MSCI)
@@ -357,7 +422,7 @@ fitFfm <- function(data, asset.var, ret.var, date.var, exposure.vars,
       }
       if(resid.EWMA)
       { res = sapply(reg.list, residuals)
-      w<-matrix(0,N,TP)
+      w <- matrix(0,N,TP)
       for(i in 1:N)
       {
         var_tminus1 = as.numeric(resid.var[i])
@@ -434,7 +499,15 @@ fitFfm <- function(data, asset.var, ret.var, date.var, exposure.vars,
     if (length (exposures.char)) {
       factor.names <- c(exposures.num, levels(data[,exposures.char]))
     }
-    rownames(factor.returns) <- factor.names
+    
+    if (length(factor.names) == 1) {
+      factor.returns <- as.matrix(factor.returns)
+      names(factor.returns) <- factor.names
+      factor.returns <- t(factor.returns)
+    } else {
+      rownames(factor.returns) <- factor.names
+    }
+    
     factor.returns <- checkData(t(factor.returns)) # T x K
     
     # time series of residuals
@@ -644,36 +717,148 @@ fitFfm <- function(data, asset.var, ret.var, date.var, exposure.vars,
     restriction.mat = rMic
   }
   
+  # Initialization
+  EX <- length(exposures.num)
   
-  # create list of return values.
+  if (lagExposures) {
+    TP <- TP + 1
+  }
+  
+  if (fullPeriod) {
+    windowPeriods <- 2    # Train all but the last time period
+  } else {
+    windowPeriods <- TP - (windowLength - 1)
+  }
+  
+  # FLAM
+  if (EX == 1) {
+    # Single factor model
+    
+    stdExposures <- matrix(data[[exposures.num]], nrow = N)[1:N, ]
+    if (grepl(analysis, "ISM")) {
+        
+        # ISM model
+        condAlpha <- matrix(0, ncol = windowPeriods, nrow = N)
+        condOmega <- vector(length = windowPeriods, "list")
+        
+        for (t in 1:windowPeriods) {
+          sigmaIC <- sd(factor.returns[t:(t + 58), 2])
+          condAlpha[, t] <- apply(rawReturns[, t:(t + 59)], 1, mean)
+          resid.var <- apply(coredata(residuals[t:(t + 58), ]), 2, var, na.rm=T)
+          resid.cov <- diag(resid.var)
+          condOmega[[t]] <- sigmaIC ^ 2 * (stdExposures[, t + 58] %*% t(stdExposures[, t + 58])) + resid.cov 
+        }
+        
+        # Optimal active weights and in-sample IR
+        activeWeights <- matrix(0, ncol = windowPeriods, nrow = N)
+        sigma_A <- targetedVol
+        
+        for (t in 1:windowPeriods) {
+          kappa <- (t(condAlpha[, t]) %*% solve(condOmega[[t]]) %*% rep(1, N)) / (rep(1, N) %*% solve(condOmega[[t]]) %*% rep(1, N))
+          activeWeights[, t] <- sigma_A * (solve(condOmega[[t]]) %*% as.matrix(condAlpha[, t] - kappa * rep(1, N))) / c(sqrt(t(as.matrix(condAlpha[, t])) %*% solve(condOmega[[t]]) %*% (condAlpha[, t] - kappa * rep(1, N))))
+        }
+        
+        condMean <- apply(activeWeights * condAlpha, 2, sum)
+        portIR <- condMean / sigma_A
+        IR_In <- mean(portIR)
+        
+        # Out-of-sample IR
+        activeReturns <- apply(activeWeights[, 1:(windowPeriods-1)] * rawReturns[, 61:(windowPeriods + 59)], 2, sum)
+        IR_Out <- sqrt(12) * mean(activeReturns) / sd(activeReturns)
+        SE_N <- 1 / sqrt(length(activeReturns)) * sqrt(1 + 0.25 * (kurtosis(activeReturns) + 2) * IR_Out ^ 2 - skewness(activeReturns) * IR_Out)
+        
+        
+     } else if (grepl(analysis, "NEW")) {
+        
+       # NEW model
+       # Set the factor returns in each period 
+       IC <- c()
+       for (t in 1:windowPeriods) {
+         IC[t] <- mean(factor.returns[t:(t + 58), 2])
+       }
+       sigmaIC <- sd(IC)
+       condAlpha <- matrix(0, ncol = windowPeriods, nrow = N)
+       condOmega <- vector(length = windowPeriods, "list")
+       for (t in 1:windowPeriods) {
+         condAlpha[, t] <- mean(IC) * (diag(sigmaGarch[, t + 59]) %*% stdExposures[, t + 58])
+         sigma_eps <- sqrt(1 - mean(IC) ^ 2 - sigmaIC ^ 2)
+         condOmega[[t]] <- diag(sigmaGarch[, t + 59]) %*% (sigmaIC ^ 2 * (stdExposures[, t + 58] %*% t(stdExposures[, t + 58])) + sigma_eps^2 * diag(nrow = N)) %*% diag(sigmaGarch[, t + 59])
+       }
+       # Optimal active weights and in-sample IR
+       activeWeights <- matrix(0, ncol = windowPeriods, nrow = N)
+       sigma_A <- targetedVol
+       
+       for (t in 1:windowPeriods) {
+         kappa <- (t(condAlpha[, t]) %*% solve(condOmega[[t]]) %*% rep(1, N)) / (rep(1, N) %*% solve(condOmega[[t]]) %*% rep(1, N))
+         activeWeights[, t] <- sigma_A * (solve(condOmega[[t]]) %*% as.matrix(condAlpha[, t] - kappa * rep(1, N))) / c(sqrt(t(as.matrix(condAlpha[, t])) %*% solve(condOmega[[t]]) %*% (condAlpha[, t] - kappa * rep(1, N))))
+       }
+       
+       condMean <- apply(activeWeights * condAlpha, 2, sum)
+       portIR <- condMean / sigma_A
+       IR_In <- mean(portIR)
+       
+       # Out-of-sample IR
+       activeReturns <- apply(activeWeights[, 1:(windowPeriods-1)] * rawReturns[, 61:(windowPeriods + 59)], 2, sum)
+       IR_Out <- sqrt(12) * mean(activeReturns) / sd(activeReturns)
+       SE_N <- 1 / sqrt(length(activeReturns)) * sqrt(1 + 0.25 * (kurtosis(activeReturns) + 2) * IR_Out ^ 2 - skewness(activeReturns) * IR_Out)
+       
+     } else {
+       condAlpha <- condOmega <- IR_In <- IR_Out <- SE_N <- NULL
+     }
+        
+  } else {
+    
+    # Multi-factor model (To be implemented)
+    # Set the standardized exposures from above
+    condAlpha <- condOmega <- IR_In <- IR_Out <- SE_N <- NULL
+    
+  }
+  
+  # Create list of return values.
   result <- list(factor.fit=reg.list, beta=beta, factor.returns=factor.returns, 
                  residuals=residuals, r2=r2, factor.cov=factor.cov, g.cov = g.cov,
                  resid.cov=resid.cov, return.cov=return.cov, restriction.mat=restriction.mat,
-                 resid.var=resid.var, call=this.call, 
+                 resid.var=resid.var, call=this.call,
                  data=data, date.var=date.var, ret.var=ret.var, 
                  asset.var=asset.var, exposure.vars=exposure.vars, 
                  weight.var=weight.var, fit.method=fit.method, 
                  asset.names=asset.names, factor.names=factor.names,
-                 time.periods=time.periods)
+                 time.periods=time.periods, condAlpha = condAlpha, 
+                 condOmega = condOmega, IR = c(IR_In, IR_Out, SE_N))
   
   class(result) <- "ffm"
   return(result)
-  }
+}
 
 
 ### function to calculate z-scores for numeric exposure i using weights w
 ## x is a data.frame object, i is a character string and w has same length as x 
 # rob.stats is a logical argument to compute robust location and scale
 
-zScore <- function (x, i, w, rob.stats) {
-  if (rob.stats) {
-    x_bar <- median(w*x[[i]])
-    (x[[i]] - x_bar)/mad(x[[i]], center=x_bar)
+zScore <- function(x, i, w, rob.stats, z.score, asset.names) {
+  if (grepl(z.score, "csScore")) {
+    if (rob.stats) {
+      x_bar <- median(w * x[[i]])
+      (x[[i]] - x_bar)/mad(x[[i]], center = x_bar)
+    } else {
+      x_bar <- mean(w * x[[i]]) 
+      n <- length(x[[i]])
+      # use equal weighted squared deviation about the weighted mean
+      (x[[i]] - x_bar)/sqrt(sum((x[[i]] - x_bar) ^ 2)/(n - 1))
+    }
   } else {
-    x_bar <- mean(w*x[[i]]) 
-    n <- length(x[[i]])
-    # use equal weighted squared deviation about the weighted mean
-    (x[[i]] - x_bar)/sqrt(sum((x[[i]]-x_bar)^2)/(n-1))
+    
+    N <- length(asset.names)
+    exposures <- matrix(w * x[[i]], nrow = N)
+    sigmaEWMA <- stdExpo <- exposures
+    meanExp <- apply(exposures, 1, mean)
+    sigmaExp <- apply(exposures, 1, sd)
+    for (j in 1:N) {
+      ts <- (exposures[j, ] - meanExp[j]) ^ 2
+      var_past_2 <- sigmaExp[j] ^ 2
+      sigmaEWMA[j, ] <- sapply(ts, function(x) var_past_2 <<- 0.10 * x + 0.90 * var_past_2)
+    }
+    as.vector((exposures -  meanExp) / sqrt(sigmaEWMA))
   }
 }
 
