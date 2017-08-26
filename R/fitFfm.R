@@ -116,9 +116,9 @@
 #' \item{asset.names}{length-N vector of asset names.}
 #' \item{factor.names}{length-K vector of factor.names.}
 #' \item{time.periods}{length-T vector of dates.}
-#' \item{}
-#' \item{}
-#' \item{}
+#' \item{condAlpha}{length-windowLength the conditional mean of the portfolio returns in each moving window}
+#' \item{condOmega}{length-windowLength list of the conditional covariance matrices of the portfolio returns in each moving window}
+#' \item{IR}{the vector of in-sample IR, out-f-sample IR, and the standard error of the out-of-sample IR}
 #' Where N is the number of assets, K is the number of factors (including the 
 #' intercept or dummy variables) and T is the number of unique time periods.
 #'
@@ -167,16 +167,15 @@
 #'                    
 #' data("mktSP")
 #' data("factorDataSetDjia")
-#' data = factorDataSetDjia
-#' data <- data[order(data[, "DATE"]), ]
+#' factorDataSetDjia <- factorDataSetDjia[order(factorDataSetDjia[, "DATE"]), ]
 #' # Extract asset names from data
-#' asset.names <- unique(data[["TICKER"]])
+#' asset.names <- unique(factorDataSetDjia[["TICKER"]])
 #' N_stocks <- length(asset.names)
-#' time.periods <- unique(data[["DATE"]])
+#' time.periods <- unique(factorDataSetDjia[["DATE"]])
 #' N_TP <- length(time.periods)
 #' bmkReturn <- mktSP[index(mktSP) %in% time.periods, ]
 #' 
-#' totReturns = matrix(data[["RETURN"]], nrow = N_stocks)[1:N_stocks, ]
+#' totReturns = matrix(factorDataSetDjia[["RETURN"]], nrow = N_stocks)[1:N_stocks, ]
 #' rownames(totReturns) = asset.names
 #' 
 #' # Compute residual returns from CAPM----
@@ -187,13 +186,13 @@
 #'   residReturns[i, ] <- totReturns[i, ] - beta_i[i] * bmkReturn
 #' }
 #' 
-#' modData <- cbind(data, "RESIDRETURN" = as.vector(residReturns))
-#' sizeFfm <- fitFfm(data = modData, asset.var = "TICKER", ret.var = "RESIDRETURN",
+#' modData <- cbind(factorDataSetDjia, "RESIDRETURN" = as.vector(residReturns))
+#' sizeFfm <- fitFfm(modData, asset.var = "TICKER", ret.var = "RESIDRETURN",
 #'                   exposure.vars = c("SIZE"), addIntercept = TRUE, stdReturn = FALSE,
 #'                   z.score = "crossSection", date.var = "DATE", lagExposures = TRUE, 
 #'                   analysis = "ISM")
 #'                   
-#' p2bFfm <- fitFfm(data = modData, asset.var = "TICKER", ret.var = "RESIDRETURN",
+#' p2bFfm <- fitFfm(modData, asset.var = "TICKER", ret.var = "RESIDRETURN",
 #'                  exposure.vars = c("P2B"), addIntercept = TRUE, stdReturn = TRUE,
 #'                  z.score = "timeSeries", date.var = "DATE", lagExposures = TRUE, 
 #'                  analysis = "NEW")
