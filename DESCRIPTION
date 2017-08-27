@@ -38,8 +38,7 @@ Imports:
     bestglm,
     tseries,
 	HH,
-	reshape2,
-	rugarch
+	reshape2
 Remotes:
 	bitbucket::alexiosg/rugarch
 Suggests:

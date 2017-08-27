@@ -11,6 +11,8 @@ chartRobRisk(object, digits = 3, col = c(4, 2), ...)
 
 \item{digits}{The number of digits of numerical values in graphs}
 
+\item{col}{The vector of numerics representing the color of the initial and final risk budgetings, respectively.}
+
 \item{...}{other graphics parameters in plot}
 }
 \value{

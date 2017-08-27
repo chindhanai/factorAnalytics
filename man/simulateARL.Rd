@@ -49,8 +49,8 @@ Threshold_lower = sapply(Thresholds, FUN = simulateARL, mu = mu[2], delta = 0.05
 
 }
 \references{
-Philips, T. K., Yashchin, E. and Stein, D. M. (2003). “Using Statistical
-Process Control to Monitor Active Managers”, Journal of Portfolio Management,
+Philips, T. K., Yashchin, E. and Stein, D. M. (2003). "Using Statistical
+Process Control to Monitor Active Managers", Journal of Portfolio Management,
 Fall 2003, pp. 86-94.
 }
 \author{

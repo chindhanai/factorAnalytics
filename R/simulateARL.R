@@ -25,8 +25,8 @@
 #' @author Thomas Philips, Chindhanai Uthaisaad.
 #'
 #' @references
-#' Philips, T. K., Yashchin, E. and Stein, D. M. (2003). “Using Statistical
-#' Process Control to Monitor Active Managers”, Journal of Portfolio Management,
+#' Philips, T. K., Yashchin, E. and Stein, D. M. (2003). "Using Statistical
+#' Process Control to Monitor Active Managers", Journal of Portfolio Management,
 #' Fall 2003, pp. 86-94.
 #'
 #' @examples

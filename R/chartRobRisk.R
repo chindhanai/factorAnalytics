@@ -6,6 +6,7 @@
 #'
 #' @param object An object of class \code{riskBudget} returned by \code{robRiskBudget}.
 #' @param digits The number of digits of numerical values in graphs
+#' @param col The vector of numerics representing the color of the initial and final risk budgetings, respectively. 
 
 #' @param ... other graphics parameters in plot
 #'

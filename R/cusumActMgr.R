@@ -3,7 +3,7 @@
 #' @description Monitor the risk adjusted performance (Information Ratio) of an actively managed portfolio and
 #' raise an alarm when sufficient evidence has accrued to indicate that its current Information Ratio is 0 or worse.
 #' The monitorng is performed using an optimal changepoint detection scheme (the CUSUM algorithm)
-#' An object of class \code{"cusumActMgr"} is returned.
+#' An object of class \code{cusumActMgr} is returned.
 #'
 #' @details
 #' Assessing the performance of the active managers is hard because active returns (i.e. portfolio return - benchmark return) are noisy.
@@ -69,8 +69,8 @@
 #' @author Chindhanai Uthaisaad.
 #'
 #' @references
-#' Philips, T. K., Yashchin, E. and Stein, D. M. (2003). “Using Statistical
-#' Process Control to Monitor Active Managers”, Journal of Portfolio Management,
+#' Philips, T. K., Yashchin, E. and Stein, D. M. (2003). "Using Statistical
+#' Process Control to Monitor Active Managers", Journal of Portfolio Management,
 #' Fall 2003, pp. 86-94.
 #'
 #' @examples
