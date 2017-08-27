@@ -76,7 +76,6 @@
 #'
 #' @examples
 #' data(RussellData)
-#' RussellData = data
 #' rf = RussellData[, 16]
 #' robRiskData = RussellData[, 1:15]
 #'

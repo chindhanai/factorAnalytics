@@ -97,7 +97,6 @@ budgets in a way that allows the process to convergence in a few (usually two) i
 }
 \examples{
 data(RussellData)
-RussellData = data
 rf = RussellData[, 16]
 robRiskData = RussellData[, 1:15]
 

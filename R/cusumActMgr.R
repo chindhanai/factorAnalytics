@@ -74,7 +74,7 @@
 #' Fall 2003, pp. 86-94.
 #'
 #' @examples
-#' Data = data(cusumData)
+#' data(cusumData)
 #' results = cusumActMgr(portfolioName = "Parvest", benchmarkName = "RUS2500", data = cusumData)
 #' @export
 

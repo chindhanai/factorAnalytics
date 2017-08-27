@@ -83,7 +83,7 @@ to a bad level (default = 0). An alarm is raised when the CUSUM scheme crosses a
 than the traditional t-test, which would take 16 years to obtain a t-statistic of 2. The threshold can be recalibrated to meet a user's needs.
 }
 \examples{
-Data = data(cusumData)
+data(cusumData)
 results = cusumActMgr(portfolioName = "Parvest", benchmarkName = "RUS2500", data = cusumData)
 }
 \references{
