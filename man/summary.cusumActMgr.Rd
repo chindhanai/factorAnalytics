@@ -44,8 +44,7 @@ Returned object is of class {summary.cusumActMgr}. The resulting object is fed t
 }
 \examples{
 data(cusumData)
-results = cusumActMgr(portfolioName = "Parvest", benchmarkName = "RUS2500",
-data = cusumData)
+results = cusumActMgr(portfolioName = "Parvest", benchmarkName = "RUS2500", data = cusumData)
 x = summary(results)
 print(x)
 

@@ -14,8 +14,7 @@
 #' @author Chindhanai Uthaisaad
 #'
 #' @examples
-#' data(RussellData)
-#' RussellData = data
+#' data("RussellData")
 #' rf = RussellData[, 16]
 #' robRiskData = RussellData[, 1:15]
 #'

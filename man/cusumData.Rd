@@ -3,7 +3,7 @@
 \docType{data}
 \name{cusumData}
 \alias{cusumData}
-\title{Parvest and S&P500}
+\title{Parvest and Russell2500}
 \source{
 TBA
 }

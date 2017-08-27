@@ -20,8 +20,7 @@ The graph of initial risk budgets and final risk budgets
 Plot the elements of an \code{riskBudget} object.
 }
 \examples{
-data(RussellData)
-RussellData = data
+data("RussellData")
 rf = RussellData[, 16]
 robRiskData = RussellData[, 1:15]
 

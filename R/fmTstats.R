@@ -41,8 +41,7 @@
 #'  
 #'  data("factorDataSetDjia5Yrs")
 #'
-#'#Fit a Ffm with style factors only
-#'  require(factorAnalytics)
+#'  #Fit a Ffm with style factors only
 #'  fit <- fitFfm(data = factorDataSetDjia5Yrs,exposure.vars = c("MKTCAP","ENTVAL","P2B","EV2S"),
 #'              date.var = "DATE", ret.var = "RETURN", asset.var = "TICKER", fit.method="WLS",
 #'              z.score = "crossSection")

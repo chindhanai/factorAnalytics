@@ -75,7 +75,7 @@
 #' The Journal of Portfolio Management, Fall 2011, pp. 1-13.
 #'
 #' @examples
-#' data(RussellData)
+#' data("RussellData")
 #' rf = RussellData[, 16]
 #' robRiskData = RussellData[, 1:15]
 #'

@@ -1,3 +1,3 @@
 library(testthat)
-library(factorAnalytics)
-test_check("factorAnalytics")
+library(factorAnalyticsAddons)
+test_check("factorAnalyticsAddons")

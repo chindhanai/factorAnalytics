@@ -27,7 +27,7 @@
 #' @author Chindhanai Uthaisaad
 #'
 #' @examples
-#' data(cusumData)
+#' data("cusumData")
 #' results = cusumActMgr(portfolioName = "Parvest", benchmarkName = "RUS2500", data = cusumData)
 #' chartCusum(results, which = 1)
 #' chartCusum(results, which = c(1,2))

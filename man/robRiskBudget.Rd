@@ -96,7 +96,7 @@ between its applicable bounds, and uses a simple heuristic to increment or decre
 budgets in a way that allows the process to convergence in a few (usually two) iterations
 }
 \examples{
-data(RussellData)
+data("RussellData")
 rf = RussellData[, 16]
 robRiskData = RussellData[, 1:15]
 
