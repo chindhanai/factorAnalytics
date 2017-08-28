@@ -5,7 +5,7 @@
 \title{Using Statistical Process Control to Monitor Active Management}
 \usage{
 cusumActMgr(portfolioName, benchmarkName, data, upperIR = 0.5, lowerIR = 0,
-  lambda_in = 0.1, lambda_out = 0.2, winsorize = 4, filterStd = FALSE)
+  lambda_in = 0.1, lambda_out = 0.2, huberize = 4, filterStd = FALSE)
 }
 \arguments{
 \item{portfolioName}{a character representing the name of the fund.
@@ -31,8 +31,8 @@ The default is set to 0.1}
 seems inconsistent with the current estimate of volatility.
 The default is set to 0.2}
 
-\item{winsorize}{the numeric value, greater than 1, of standard deviations
-at which we winsorize. The default is set to 4.}
+\item{huberize}{the numeric value, greater than 1, of standard deviations
+at which we huberize. The default is set to 4.}
 
 \item{filterStd}{the logical value representing the filter of the estimated
 standard deviations. The default is set to \code{FALSE}.}

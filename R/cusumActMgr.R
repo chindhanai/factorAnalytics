@@ -42,8 +42,8 @@
 #' @param lambda_out the exponential weighting constant when the data
 #' seems inconsistent with the current estimate of volatility.
 #' The default is set to 0.2
-#' @param winsorize the numeric value, greater than 1, of standard deviations
-#' at which we winsorize. The default is set to 4.
+#' @param huberize the numeric value, greater than 1, of standard deviations
+#' at which we huberize. The default is set to 4.
 #' @param filterStd the logical value representing the filter of the estimated
 #' standard deviations. The default is set to \code{FALSE}.
 #'
@@ -82,7 +82,7 @@
 
 cusumActMgr <- function(portfolioName, benchmarkName, data, upperIR = 0.5,
                         lowerIR = 0, lambda_in = 0.10, lambda_out = 0.20,
-                        winsorize = 4, filterStd = FALSE) {
+                        huberize = 4, filterStd = FALSE) {
 
   # record the call as an element to be returned
   this.call <- match.call()
@@ -100,8 +100,8 @@ cusumActMgr <- function(portfolioName, benchmarkName, data, upperIR = 0.5,
     stop("Invalid args: the benchmark returns must be a charactor string")
   }
 
-  if(winsorize < 1){
-    stop("Invalid args: the winsorizing parameter should be greater than 1")
+  if(huberize < 1){
+    stop("Invalid args: the huberizing parameter should be greater than 1")
   }
 
   if(lambda_in < 0 || lambda_in >1 || lambda_out < 0 || lambda_out > 1){
@@ -145,12 +145,12 @@ cusumActMgr <- function(portfolioName, benchmarkName, data, upperIR = 0.5,
 
   #Update the means and unfiltered standard deviations for the fund and benchmark
   for(i in 1:n){
-    Means[i+1,1] = muEst(coredata(portfolioReturns[i]), Means[i,1], uStds[i,1], winsorize, lambda_in)
-    uStds[i+1,1] = sigmaEst(coredata(portfolioReturns[i]), Means[i+1,1], uStds[i,1], winsorize, lambda_in, lambda_out)
-    Means[i+1,2] = muEst(coredata(benchmarkReturns[i]), Means[i,2], uStds[i,2], winsorize, lambda_in)
-    uStds[i+1,2] = sigmaEst(coredata(benchmarkReturns[i]), Means[i+1,2], uStds[i,2], winsorize, lambda_in, lambda_out)
-    Means[i+1,3] = muEst(coredata(logExcessReturns[i]), Means[i,3], uStds[i,3], winsorize, lambda_in)
-    uStds[i+1,3] = sigmaEst(coredata(logExcessReturns[i]), Means[i+1,3], uStds[i,3], winsorize, lambda_in, lambda_out)
+    Means[i+1,1] = muEst(coredata(portfolioReturns[i]), Means[i,1], uStds[i,1], huberize, lambda_in)
+    uStds[i+1,1] = sigmaEst(coredata(portfolioReturns[i]), Means[i+1,1], uStds[i,1], huberize, lambda_in, lambda_out)
+    Means[i+1,2] = muEst(coredata(benchmarkReturns[i]), Means[i,2], uStds[i,2], huberize, lambda_in)
+    uStds[i+1,2] = sigmaEst(coredata(benchmarkReturns[i]), Means[i+1,2], uStds[i,2], huberize, lambda_in, lambda_out)
+    Means[i+1,3] = muEst(coredata(logExcessReturns[i]), Means[i,3], uStds[i,3], huberize, lambda_in)
+    uStds[i+1,3] = sigmaEst(coredata(logExcessReturns[i]), Means[i+1,3], uStds[i,3], huberize, lambda_in, lambda_out)
   }
 
   Stds = uStds
@@ -325,13 +325,13 @@ cusumActMgr <- function(portfolioName, benchmarkName, data, upperIR = 0.5,
 # sigma0 = an estimated volatility from the last time period.
 #          If it is not available (as for example in the first period,
 #          set it to 0, in which case, the mean)
-# win_level = the number of standard deviations at which we winsorize
-#             (default: win_level =4)
+# hub_level = the number of standard deviations at which we huberize
+#             (default: hub_level =4)
 # lambda = the exponential weighting constant (default: lambda = 0.1)
-muEst = function(r, mu0, sigma0, win_level = 4, lambda = 0.1){
-  #Winsorization
-  if (abs(r - mu0) > win_level * sigma0 ) {
-    r = mu0 + sign(r - mu0) * win_level * sigma0
+muEst = function(r, mu0, sigma0, hub_level = 4, lambda = 0.1){
+  #Huberization
+  if (abs(r - mu0) > hub_level * sigma0 ) {
+    r = mu0 + sign(r - mu0) * hub_level * sigma0
   }
   return(lambda * r + (1 - lambda) * mu0)
 }
@@ -348,8 +348,8 @@ muEst = function(r, mu0, sigma0, win_level = 4, lambda = 0.1){
 # sigma0 = the estimated volatility from the last time period.
 #          If it is not available (as for example in the first
 #          period, set it to 0 or some initial estimate
-# win_level = the number of standard deviations at which we
-#             winsorize (default: win_level =4)
+# hub_level = the number of standard deviations at which we
+#             huberize (default: hub_level =4)
 # lambda_in = the exponential weighting constant when the data
 #             seems consistent with the current estimate of
 #             volatility (default: lambda = 0.1)
@@ -357,10 +357,10 @@ muEst = function(r, mu0, sigma0, win_level = 4, lambda = 0.1){
 #              seems inconsistent with the current estimate of
 #              volatility (default: lambda = 0.2)
 
-sigmaEst = function(r, mu0, sigma0, win_level = 4, lambda_in = 0.1,
+sigmaEst = function(r, mu0, sigma0, hub_level = 4, lambda_in = 0.1,
                     lambda_out = 0.2){
 
-  lambda = ifelse((sigma0 < win_level * abs(r - mu0)) && (abs(r - mu0) < win_level * sigma0), lambda_in, lambda_out)
+  lambda = ifelse((sigma0 < hub_level * abs(r - mu0)) && (abs(r - mu0) < hub_level * sigma0), lambda_in, lambda_out)
   return(sqrt(lambda * (r - mu0) ^ 2 + (1 - lambda) * sigma0 ^ 2))
 }
 
