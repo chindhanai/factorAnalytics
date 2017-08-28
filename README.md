@@ -23,11 +23,11 @@ The `factorAnalyticsAddons` package contains the same functionalities as the `fa
 - Plots of key elements, such as tracking error and cusum IR, the users are looking for
 
 > Robust Risk Budgeting with Expected Shortfall
-- Implements the method to compute an optimal set of risk budgets
+- Implementation of the method to compute an optimal set of risk budgets
 - Plot of the original risk budget versus the final risk budget
 
-> The Fundamental Law of Active Management
+> The Fundamental Law of Active Management: additional features of `fitFfm`
 - New standardization method to the factor exposures to reflect more reasonable standardization
-- New analyses of conditional mean returns and conditional covariances
+- New analysis of the conditional mean of the portfolio returns and conditional covariance matrices of the portfolio returns in each of the moving windows
 
 Detailed information on new functionalities and use of the functions can be found at **[ffm vignette](https://github.com/AvinashAcharya/factorAnalytics/blob/master/vignettes/ffmVignette-GSoC-2016.pdf)**
