@@ -25,10 +25,14 @@ with robust regression\cr}
 \item{...}{other graphics parameters in plot}
 }
 \value{
-Graph(s) as specified by the user
+Graph(s) as specified by the user.
 }
 \description{
-Plot the elements of an \code{cusumActMgr} object.
+Plot the elements of an \code{cusumActMgr} object. The EWMA tracking errors are computed
+month-to-month by the simple weighted average of the "log-excess returns" volatility and its former (adjacent) time period volatility. 
+The excess volatility is the EWMA tracking error difference from the portfolio returns EWMA tracking error
+and the benchmark returns EWMA tracking error. Annualized IR is computed by using the monthly log-excess returns
+and the annualized EWMA tracking errors.
 }
 \examples{
 data("cusumData")

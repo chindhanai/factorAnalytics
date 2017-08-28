@@ -338,8 +338,8 @@ muEst = function(r, mu0, sigma0, win_level = 4, lambda = 0.1){
 
 
 # This function is a simple weighted average of the current
-# excess return and the last time period excess return. The returned value
-# would be the current excess return used in the computation
+# volatility and the last time period volatility. The returned value
+# would be the current volatility used in the computation
 
 # r = the logarithmic excess return in the current period
 # mu0 = the mean excess return from the last time period

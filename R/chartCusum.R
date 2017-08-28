@@ -1,6 +1,12 @@
 #' @title cusumActMgr Plots
 #'
-#' @description Plot the elements of an \code{cusumActMgr} object.
+#'
+#' @description Plot the elements of an \code{cusumActMgr} object. The EWMA tracking errors are computed
+#' month-to-month by the simple weighted average of the "log-excess returns" volatility and its former (adjacent) time period volatility. 
+#' The excess volatility is the EWMA tracking error difference from the portfolio returns EWMA tracking error
+#' and the benchmark returns EWMA tracking error. Annualized IR is computed by using the monthly log-excess returns
+#' and the annualized EWMA tracking errors. 
+#' 
 #'
 #' @importFrom zoo as.yearmon coredata index
 #' @importFrom stats sd
@@ -22,7 +28,7 @@
 #' @param ... other graphics parameters in plot
 #'
 #' @return
-#' Graph(s) as specified by the user
+#' Graph(s) as specified by the user.
 #'
 #' @author Chindhanai Uthaisaad
 #'
@@ -75,7 +81,7 @@ chartCusum <- function(object, digits = 3, which = NULL, ...) {
                              panel.xyplot(x,y,...)
                              panel.abline(h = 0, col=1, lty = 1)})
                # 3: Plot of tracking error
-               P3 = xyplot(obj3, main="Annualized Tracking Error",
+               P3 = xyplot(obj3, main="EWMA Tracking Error (annualized)",
                            type = c('l', 'g'), las=0,
                            xlab = "", ylab = "Tracking Error (%)", col = 4, lwd = 1.5,
                            ylim = c(min(obj3)-1, max(obj3)+1),
