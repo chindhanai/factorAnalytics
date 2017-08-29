@@ -40,7 +40,7 @@
 #' 
 #'
 #' @importFrom stats lm as.formula coef contr.treatment fitted mad median model.matrix
-#'             na.exclude na.fail na.omit var 
+#'             na.exclude na.fail na.omit var cov
 #' @importFrom robustbase scaleTau2 covOGK
 #' @importFrom PerformanceAnalytics checkData kurtosis skewness
 #' @importFrom robust covRob covClassic lmRob
@@ -134,13 +134,6 @@
 #' Grinold, R. C., & Kahn, R. N. (2000). Active portfolio management (Second
 #' Ed.). New York: McGraw-Hill.
 #'
-#' 
-#' And, the following extractor functions: \code{\link[stats]{coef}}, 
-#' \code{\link[stats]{fitted}}, \code{\link[stats]{residuals}},
-#' \code{\link{fmCov}}, \code{\link{fmSdDecomp}}, \code{\link{fmVaRDecomp}} 
-#' and \code{\link{fmEsDecomp}}.
-#' 
-#' \code{\link{paFm}} for Performance Attribution.
 #'
 #' @examples
 #'

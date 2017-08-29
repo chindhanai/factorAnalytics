@@ -3,8 +3,10 @@
 #' @description This function simulates thresholds of Lindley's recursion
 #' used in the function \code{cusumActMgr}.
 #'
-#' @details
-#'
+#' @details Simulate the thresholds used in \code{cusumActMgr}
+#' 
+#' @importFrom xts is.xts first
+#' @importFrom stats rnorm
 #'
 #' @param mu A numeric value that determines the information ratio we want to
 #' simulate thresholds for. No default value is set.

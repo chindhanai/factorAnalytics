@@ -35,7 +35,7 @@ This function simulates thresholds of Lindley's recursion
 used in the function \code{cusumActMgr}.
 }
 \details{
-
+Simulate the thresholds used in \code{cusumActMgr}
 }
 \examples{
 Lower_Threshold = 1.00
