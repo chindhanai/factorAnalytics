@@ -829,7 +829,7 @@ fitFfm <- function(data, asset.var, ret.var, date.var, exposure.vars,
                  data=data, date.var=date.var, ret.var=ret.var, 
                  asset.var=asset.var, exposure.vars=exposure.vars, 
                  weight.var=weight.var, fit.method=fit.method, 
-                 asset.names=asset.names, factor.names=factor.names,
+                 asset.names=asset.names, factor.names=factor.names, activeReturns = activeReturns,
                  time.periods=time.periods, condAlpha = condAlpha, 
                  condOmega = condOmega, IR = c(IR_In, IR_Out, SE_N))
   
