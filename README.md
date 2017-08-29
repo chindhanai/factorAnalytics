@@ -35,6 +35,6 @@ The `factorAnalyticsAddons` package contains the same functionalities as the `fa
 
 > Completed Tasks
 
-Key deliverables No. 2, 4, 8, 11 have been completed. The implementation of key deliverables 1 and 3 are at their preliminary. I plan to finish this by mid September, and the rest are to be completed by the end of December. 
+Key deliverables No. 2, 4, 8, 11, which are deemed the most challenging, have been completed. The implementation of key deliverables 1 and 3 are at their beginning. I plan to finish this by mid September, and the rest are to be completed by the end of December. 
 
 Detailed information on new functionalities and use of the functions can be found in the vignette folder.
